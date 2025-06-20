@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Список товаров</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+      #new-item {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        box-sizing: border-box;
+        margin-bottom: 20px;
+      }
+      #items-list {
+        list-style-type: none;
+        padding: 0;
+      }
+      .item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+      }
+      .item.done {
+        background-color: #f5f5f5;
+      }
+      .item.done .item-text {
+        text-decoration: line-through;
+        color: #888;
+      }
+      .item-checkbox {
+        margin-right: 10px;
+      }
+      .item-text {
+        flex-grow: 1;
+        margin-right: 10px;
+      }
+      .edit-input {
+        flex-grow: 1;
+        margin-right: 10px;
+        padding: 5px;
+        font-size: 14px;
+      }
+      .item-buttons button {
+        margin-left: 5px;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      .edit-btn {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+      }
+      .delete-btn {
+        background-color: #f44336;
+        color: white;
+        border: none;
+      }
+      .save-btn {
+        background-color: #2196f3;
+        color: white;
+        border: none;
+      }
+      #clear-storage {
+        display: none;
+        float: right;
+        width: 20%;
+        padding: 10px;
+        margin-top: 20px;
+        background-color: #b9b9b9;
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      #clear-storage:hover {
+        background-color: #797979;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Список товаров</h1>
+    <input type="text" id="new-item" placeholder="Введите наименование товара..." />
+    <ul id="items-list"></ul>
+    <button id="clear-storage">Очистить</button>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // DOM Elements
+        const newItemInput = document.getElementById("new-item");
+        const itemsList = document.getElementById("items-list");
+        const clearStorageBtn = document.getElementById("clear-storage");
+
+        // State
+        let items = JSON.parse(localStorage.getItem("items")) || [];
+
+        // Utility Functions
+        const updateLocalStorage = () => {
+          localStorage.setItem("items", JSON.stringify(items));
+          updateClearButtonVisibility();
+        };
+
+        const updateClearButtonVisibility = () => {
+          clearStorageBtn.style.display = items.length > 0 ? "block" : "none";
+        };
+
+        const clearStorage = () => {
+          localStorage.removeItem("items");
+          items = [];
+          renderItems();
+        };
+
+        const confirmClearStorage = () => {
+          if (confirm("Вы уверены, что хотите удалить все товары? Это действие нельзя отменить.")) {
+            clearStorage();
+          }
+        };
+
+        // DOM Creation Helpers
+        const createElement = (tag, className, textContent = "") => {
+          const element = document.createElement(tag);
+          if (className) element.className = className;
+          if (textContent) element.textContent = textContent;
+          return element;
+        };
+
+        const createItemElement = (item, index) => {
+          const li = createElement("li", `item${item.done ? " done" : ""}`);
+
+          // Checkbox
+          const checkbox = createElement("input", "item-checkbox");
+          checkbox.type = "checkbox";
+          checkbox.checked = item.done;
+          checkbox.addEventListener("change", () => toggleItemDone(index, checkbox, li));
+
+          // Text
+          const textSpan = createElement("span", "item-text", item.text);
+
+          // Edit Input
+          const editInput = createElement("input", "edit-input");
+          editInput.type = "text";
+          editInput.value = item.text;
+          editInput.style.display = "none";
+
+          // Buttons
+          const editBtn = createElement("button", "edit-btn", "✏️");
+          editBtn.addEventListener("click", () => startEditing(index, textSpan, editInput, editBtn, saveBtn));
+
+          const saveBtn = createElement("button", "save-btn", "💾");
+          saveBtn.style.display = "none";
+          saveBtn.addEventListener("click", () => saveEdit(index, editInput));
+
+          const deleteBtn = createElement("button", "delete-btn", "❌");
+          deleteBtn.addEventListener("click", () => deleteItem(index));
+
+          const buttonsDiv = createElement("div", "item-buttons");
+          buttonsDiv.append(editBtn, saveBtn, deleteBtn);
+
+          li.append(checkbox, textSpan, editInput, buttonsDiv);
+          return li;
+        };
+
+        // Event Handlers
+        const toggleItemDone = (index, checkbox, li) => {
+          items[index].done = checkbox.checked;
+          updateLocalStorage();
+          li.className = `item${checkbox.checked ? " done" : ""}`;
+        };
+
+        const startEditing = (index, textSpan, editInput, editBtn, saveBtn) => {
+          textSpan.style.display = "none";
+          editInput.style.display = "block";
+          editBtn.style.display = "none";
+          saveBtn.style.display = "inline-block";
+          editInput.focus();
+        };
+
+        const saveEdit = (index, editInput) => {
+          const newText = editInput.value.trim();
+          if (newText) {
+            items[index].text = newText;
+            updateLocalStorage();
+            renderItems();
+          }
+        };
+
+        const deleteItem = (index) => {
+          if (items.length > 1) {
+            items.splice(index, 1);
+            updateLocalStorage();
+            renderItems();
+          } else {
+            clearStorage();
+          }
+        };
+
+        const handleNewItemKeyPress = (e) => {
+          if (e.key === "Enter") {
+            const text = newItemInput.value.trim();
+            if (text) {
+              items.push({ text, done: false });
+              updateLocalStorage();
+              renderItems();
+              newItemInput.value = "";
+            }
+          }
+        };
+
+        // Main Functions
+        const renderItems = () => {
+          itemsList.innerHTML = "";
+          items
+            .sort((a, b) => a.text.localeCompare(b.text))
+            .forEach((item, index) => {
+              itemsList.appendChild(createItemElement(item, index));
+            });
+          updateClearButtonVisibility();
+        };
+
+        // Event Listeners
+        newItemInput.addEventListener("keypress", handleNewItemKeyPress);
+        clearStorageBtn.addEventListener("click", confirmClearStorage);
+
+        // Initialization
+        updateClearButtonVisibility();
+        renderItems();
+      });
+    </script>
+  </body>
+</html>
