@@ -2,6 +2,8 @@
 
 A lightweight simple web application for creating an alphabetically ordered list.
 
+**→ [Live Demo](https://www.himmelen.ru/list)**  
+
 ## Key Features
 
 🔠 **Automatic Alphabetical Sorting** - All items are automatically sorted in ascending order (A→Z)  
